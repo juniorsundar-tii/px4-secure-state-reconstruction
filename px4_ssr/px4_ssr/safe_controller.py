@@ -49,8 +49,8 @@ class SafeController(Node):
         self.start_ssr = False
 
         h = np.vstack([np.identity(self.n),-np.identity(self.n)])
-        q = 8*np.ones((2*self.n,1))
-        gamma = 0.8
+        q = 6*np.ones((2*self.n,1))
+        gamma = 1*TS # tuning parameter
 
         self.safe_problem = SafeProblem(self.dtsys_a, self.dtsys_b, h, q, gamma)
 
