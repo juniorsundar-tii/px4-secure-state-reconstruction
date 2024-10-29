@@ -7,7 +7,7 @@ import scipy.linalg as linalg
 from cvxopt import matrix, solvers
 
 EPS: float = 1e-6
-TS: float = 0.1
+TS: float = 0.05
 TAU: float = 5.0 # 2.0 works
 
 def right_shift_row_array(a, shift_amount):
@@ -333,9 +333,12 @@ class SecureStateReconstruct:
 
         residual_min = min(residual_list)
         # print(f"residual min is {residual_min}")
-        if residual_min<min(error_bound,10*residual_min):
-            possible_states_list = [state for residual, state in zip(residual_list, state_list) if residual < error_bound]
-            corresp_sensors_list = [sensors for residual, sensors in zip(residual_list, sensor_list) if residual < error_bound]
+        if residual_min<error_bound:
+            error_bound_new = min(error_bound,10*residual_min) 
+            possible_states_list = [state for residual, state in zip(residual_list, state_list) if residual < error_bound_new]
+            corresp_sensors_list = [sensors for residual, sensors in zip(residual_list, sensor_list) if residual < error_bound_new]
+            possible_residuals_list = [residual for residual in residual_list if residual < error_bound_new]
+
             possible_states = np.hstack(possible_states_list)
             corresp_sensors = np.array(corresp_sensors_list)
         else:
@@ -343,6 +346,7 @@ class SecureStateReconstruct:
             residual_min_index =  residual_list.index( min(residual_list))
             possible_states = np.reshape(state_list[residual_min_index],(-1,1))
             corresp_sensors = np.array(sensor_list[residual_min_index])
+            possible_residuals_list = [residual_min]
 
         return possible_states, corresp_sensors, possible_residuals_list
 

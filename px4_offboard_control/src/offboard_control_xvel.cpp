@@ -57,6 +57,12 @@ public:
 
         target = 0;
         threshold = 0.5;
+        dvx = 2/sampling_freq; // Set your desired bound for vx variation
+        dvy = 2/sampling_freq; // Set your desired bound for vy variation
+        prev_vx = 0.0; // Store previous vx
+        prev_vy = 0.0; // Store previous vy
+        new_vx = 0.0;
+        new_vy = 0.0;
 
         auto timer_callback = [this]() -> void {
             if (offboard_setpoint_counter_ == 10) {
@@ -107,8 +113,26 @@ public:
                     }
                 }
 
-                vx = 0.6 * vx;
-                vy = 0.6 * vy;
+                new_vx = 0.6 * vx;
+                new_vy = 0.6 * vy;
+
+                // Apply bounding on vx variation
+                if (std::abs(new_vx - prev_vx) > dvx) {
+                    vx = prev_vx + std::copysign(dvx, new_vx - prev_vx); // Bound variation to dvx
+                } else {
+                    vx = new_vx;
+                }
+
+                // Apply bounding on vy variation
+                if (std::abs(new_vy - prev_vy) > dvy) {
+                    vy = prev_vy + std::copysign(dvy, new_vy - prev_vy); // Bound variation to dvy
+                } else {
+                    vy = new_vy;
+                }
+
+                // Update previous values
+                prev_vx = vx;
+                prev_vy = vy;
 
                 /*vx = 1.5 * std::sin(time_counter / Ts);*/
                 /*vy = 1.5 * std::cos(time_counter / Ts);*/
@@ -159,7 +183,7 @@ private:
 
     px4_msgs::msg::VehicleLocalPosition position;
     uint64_t offboard_setpoint_counter_; //!< counter for the number of setpoints sent
-    float vx, vy, vz, sampling_freq, threshold;
+    float vx, vy, vz, sampling_freq, threshold,dvx,dvy,prev_vx,prev_vy,new_vx,new_vy;
     /*float time_counter, Ts;*/
     int target;
     bool start_ssr;
