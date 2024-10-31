@@ -113,8 +113,8 @@ public:
                     }
                 }
 
-                new_vx = 0.6 * vx;
-                new_vy = 0.6 * vy;
+                new_vx = 0.3 * vx;
+                new_vy = 0.3 * vy;
 
                 // Apply bounding on vx variation
                 if (std::abs(new_vx - prev_vx) > dvx) {

@@ -39,9 +39,7 @@ class SafeController(Node):
             )
         )
         self.n: int = self.dtsys_a.shape[0]
-        self.m: int = self.dtsys_c.shape[0]
 
-        self.s = 2
         # self.y_vec = []
         self.u_vec = []
         self.x_array = []
@@ -49,7 +47,7 @@ class SafeController(Node):
         self.start_ssr = False
 
         h = np.vstack([np.identity(self.n),-np.identity(self.n)])
-        q = 5*np.ones((2*self.n,1))
+        q = 6*np.ones((2*self.n,1))
         gamma = 1*TS # tuning parameter
 
         self.safe_problem = SafeProblem(self.dtsys_a, self.dtsys_b, h, q, gamma)
