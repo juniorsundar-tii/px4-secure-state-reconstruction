@@ -220,7 +220,7 @@ environment.
 ssr_ros_ws ros2 launch px4_ssr ssr_launch.py # This will launch the estimator and filter
 ```
 
-## Initiate the Estimator
+## Initiate the Regular Controller
 
 ```bash
 # in Terminal 5
@@ -312,4 +312,39 @@ subgraph "Drone"
         Nominal_Controller-->|Nominal Control Inputs| Safety_Filter
     end  
 end
+```
+
+# Sequential Initialisation
+
+## Start Regular Controller
+
+The drone will only hover until a toggle is provided:
+
+```bash
+# in Terminal 5
+ssr_ros_ws ros2 topic pub -1 /start_ssr std_msgs/msg/Empty "{}"
+```
+
+## Start Attacker
+
+Attacker can be toggled with this:
+
+```bash
+ssr_ros_ws ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "data: false"
+```
+
+## Start Safe Controller
+
+The standard controller will be used until this is initialised:
+
+```bash
+ssr_ros_ws ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "data: false"
+```
+
+## Start State Reconstruction
+
+State reconstruction can be initialised with this:
+
+```bash
+ssr_ros_ws ros2 topic pub -1 /state_reconstruction std_msgs/msg/Bool "data: true" # or "data: false"
 ```
