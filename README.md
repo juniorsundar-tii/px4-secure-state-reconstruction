@@ -11,11 +11,16 @@
   - [Launch DDS Agent](#launch-dds-agent)
   - [Launch Offboard Control Modules](#launch-offboard-control-modules)
   - [Launch Secure State Reconstruction Nodes](#launch-secure-state-reconstruction-nodes)
-  - [Initiate the Estimator](#initiate-the-estimator)
+  - [Initiate the Regular Controller](#initiate-the-regular-controller)
 - [Updating (in Containers)](#updating-in-containers)
 - [Plan for Implementation](#plan-for-implementation)
   - [Simulation](#simulation)
   - [Hardware](#hardware)
+- [Sequential Initialisation](#sequential-initialisation)
+  - [Start Regular Controller](#start-regular-controller)
+  - [Start Attacker](#start-attacker)
+  - [Start Safe Controller](#start-safe-controller)
+  - [Start State Reconstruction](#start-state-reconstruction)
 <!--toc:end-->
 
 # Installation
