@@ -22,20 +22,20 @@ public:
     OffboardControlXvel() : Node("offboard_control_xvel") {
 
         rmw_qos_profile_t qos_profile = rmw_qos_profile_sensor_data;
-        auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5),
-                               qos_profile);
+        auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5), qos_profile);
 
         offboard_control_mode_publisher_ = this->create_publisher<px4_msgs::msg::OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
         trajectory_setpoint_publisher_ = this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
         vehicle_command_publisher_ = this->create_publisher<px4_msgs::msg::VehicleCommand>("/fmu/in/vehicle_command", 10);
-
         input_matrix_publisher_ = this->create_publisher<px4_offboard_control::msg::TimestampedArray>("/input_matrices", 10);
 
         ekf_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/vehicle_local_position", qos, std::bind(&OffboardControlXvel::ekf_callback_, this, std::placeholders::_1));
-
-        sensor_matrix_subscriber_ = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/sensor_matrices", qos, std::bind(&OffboardControlXvel::update_sensor_matrix_callback_, this, std::placeholders::_1));
+        attacked_subscriber = this->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/vehicle_local_position/attacked", qos, std::bind(&OffboardControlXvel::attacked_callback, this, std::placeholders::_1));
         ssr_start_subscriber_ = this->create_subscription<std_msgs::msg::Empty>("/start_ssr", qos, std::bind(&OffboardControlXvel::ssr_start_callback_, this, std::placeholders::_1));
         safe_input_subscriber = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/u_safe", qos, std::bind(&OffboardControlXvel::update_safe_control_callback_, this, std::placeholders::_1));
+
+        states.push_back(px4_msgs::msg::VehicleLocalPosition());
+        states.push_back(px4_msgs::msg::VehicleLocalPosition());
 
         sampling_freq = 20; // in Hertz
         offboard_setpoint_counter_ = 0;
@@ -52,20 +52,15 @@ public:
         u_safe.push_back(0);
         u_safe.push_back(0);
 
+        /*time_counter = 0;*/
+        /*Ts = 2.5;*/
+
         target = 0;
         threshold = 0.5;
-        dvx = 2 / sampling_freq; // Set your desired bound for vx variation
-        dvy = 2 / sampling_freq; // Set your desired bound for vy variation
-        prev_vx = 0.0;           // Store previous vx
-        prev_vy = 0.0;           // Store previous vy
-        new_vx = 0.0;
-        new_vy = 0.0;
-
 
         auto timer_callback = [this]() -> void {
             if (offboard_setpoint_counter_ == 10) {
-                this->publish_vehicle_command(
-                    px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
+                this->publish_vehicle_command(px4_msgs::msg::VehicleCommand::VEHICLE_CMD_DO_SET_MODE, 1, 6);
                 this->arm();
             }
 
@@ -88,7 +83,7 @@ public:
 
                 vx = coordinates[target][0] - reference.x;
                 vy = coordinates[target][1] - reference.y;
-                vz = -5 - position.z;
+                vz = -5 - reference.z;
 
                 if (abs(vx) > 5) {
                     vx = vx / abs(vx) * 5; // Input in x
@@ -112,39 +107,26 @@ public:
                     }
                 }
 
-                new_vx = 0.3 * vx;
-                new_vy = 0.3 * vy;
+                vx = 0.6 * vx;
+                vy = 0.6 * vy;
 
-                // Apply bounding on vx variation
-                if (std::abs(new_vx - prev_vx) > dvx) {
-                    vx = prev_vx +
-                        std::copysign(dvx, new_vx - prev_vx); // Bound variation to dvx
-                } else {
-                    vx = new_vx;
-                }
+                /*vx = 1.5 * std::sin(time_counter / Ts);*/
+                /*vy = 1.5 * std::cos(time_counter / Ts);*/
+                /*vx = 1.5 * std::sin(time_counter / Ts);*/
+                /*vy = 1.5 * std::cos(time_counter / Ts);*/
+                /*vz = -5 - position.z;*/
+                /*if (abs(vz) > 5) {*/
+                /*    vz = vz / abs(vz) * 5; // Input in z*/
+                /*}*/
 
-                // Apply bounding on vy variation
-                if (std::abs(new_vy - prev_vy) > dvy) {
-                    vy = prev_vy +
-                        std::copysign(dvy, new_vy - prev_vy); // Bound variation to dvy
-                } else {
-                    vy = new_vy;
-                }
-
-                // Update previous values
-                prev_vx = vx;
-                prev_vy = vy;
-
+                /*time_counter += 1 / sampling_freq;*/
                 px4_offboard_control::msg::TimestampedArray input; // Input vector
-                std::vector<double> input_vector{static_cast<double>(vx),
-                    static_cast<double>(vy)};
+                std::vector<double> input_vector{static_cast<double>(vx), static_cast<double>(vy)};
                 input.array.data = input_vector;
                 input_matrix_publisher_->publish(input);
 
-                if (safe_control) {
-                    vx = u_safe[0];
-                    vy = u_safe[1];
-                }
+                vx = u_safe[0];
+                vy = u_safe[1];
             }
 
             // offboard_control_mode needs to be paired with trajectory_setpoint
@@ -173,18 +155,16 @@ private:
     rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr ekf_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr ssr_start_subscriber_;
     rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr attacked_subscriber;
-    rclcpp::Subscription<px4_offboard_control::msg::TimestampedArray>::SharedPtr sensor_matrix_subscriber_;
     rclcpp::Subscription<px4_offboard_control::msg::TimestampedArray>::SharedPtr safe_input_subscriber;
 
     px4_msgs::msg::VehicleLocalPosition position;
-
     uint64_t offboard_setpoint_counter_; //!< counter for the number of setpoints sent
-    float vx, vy, vz, sampling_freq, threshold, dvx, dvy, prev_vx, prev_vy, new_vx, new_vy;
-
+    float vx, vy, vz, sampling_freq, threshold;
+    /*float time_counter, Ts;*/
     int target;
     bool start_ssr;
     std::vector<std::vector<float>> coordinates;
-    px4_offboard_control::msg::TimestampedArray states;
+    std::vector<px4_msgs::msg::VehicleLocalPosition> states;
     std::vector<float> u_safe;
 
     void publish_offboard_control_mode();
@@ -193,7 +173,6 @@ private:
     void attacked_callback(px4_msgs::msg::VehicleLocalPosition msg);
     void ssr_start_callback_(std_msgs::msg::Empty msg);
     void update_safe_control_callback_(px4_offboard_control::msg::TimestampedArray msg);
-    void update_sensor_matrix_callback_(px4_offboard_control::msg::TimestampedArray msg);
     void publish_vehicle_command(uint16_t command, float param1 = 0.0, float param2 = 0.0);
     void state_merger(px4_msgs::msg::VehicleLocalPosition &output);
 };
@@ -273,6 +252,7 @@ void OffboardControlXvel::publish_vehicle_command(uint16_t command,
 void OffboardControlXvel::ekf_callback_(
     px4_msgs::msg::VehicleLocalPosition msg) {
     this->position = msg;
+    states[0] = msg;
 }
 
 /**
@@ -298,28 +278,26 @@ int main(int argc, char *argv[]) {
  * @param position	Position output from the EKF
  */
 void OffboardControlXvel::state_merger(px4_msgs::msg::VehicleLocalPosition &output) {
-    output.x = states.array.data[0] + states.array.data[4];
-    output.y = states.array.data[2] + states.array.data[6];
-
-    output.x /= 2;
-    output.y /= 2;
+    int length = states.size();
+    for (px4_msgs::msg::VehicleLocalPosition &entry : states) {
+        output.x += entry.x;
+        output.y += entry.y;
+        output.z += entry.z;
+    }
+    output.x /= length;
+    output.y /= length;
+    output.z /= length;
 }
 
-void OffboardControlXvel::update_safe_control_callback_(px4_offboard_control::msg::TimestampedArray msg) {
+/**
+ * @brief Obtain local position of vehicle at attacked sensor
+ * @param position	Position output from the EKF
+ */
+void OffboardControlXvel::attacked_callback(px4_msgs::msg::VehicleLocalPosition position) {
+    states[1] = position;
+}
+
+void OffboardControlXvel::update_safe_control_callback_(px4_offboard_control::msg::TimestampedArray msg){
     u_safe[0] = msg.array.data[0];
     u_safe[1] = msg.array.data[1];
-}
-
-void OffboardControlXvel::update_sensor_matrix_callback_(px4_offboard_control::msg::TimestampedArray msg) {
-    this->states = msg;
-}
-
-int main(int argc, char *argv[]) {
-    std::cout << "Starting offboard control node..." << std::endl;
-    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<OffboardControlXvel>());
-
-    rclcpp::shutdown();
-    return 0;
 }
