@@ -7,7 +7,6 @@
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_offboard_control/msg/timestamped_array.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/empty.hpp>
 #include <stdint.h>
 
@@ -36,7 +35,6 @@ public:
 
         sensor_matrix_subscriber_ = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/sensor_matrices", qos, std::bind(&OffboardControlXvel::update_sensor_matrix_callback_, this, std::placeholders::_1));
         ssr_start_subscriber_ = this->create_subscription<std_msgs::msg::Empty>("/start_ssr", qos, std::bind(&OffboardControlXvel::ssr_start_callback_, this, std::placeholders::_1));
-        enable_safe_control_subscriber_ = this->create_subscription<std_msgs::msg::Bool>("/safe_control", qos, std::bind(&OffboardControlXvel::enable_safe_control_callback_, this, std::placeholders::_1));
         safe_input_subscriber = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/u_safe", qos, std::bind(&OffboardControlXvel::update_safe_control_callback_, this, std::placeholders::_1));
 
         sampling_freq = 20; // in Hertz
@@ -50,7 +48,6 @@ public:
         coordinates.emplace_back(std::vector<float>{5., -5.});
 
         start_ssr = false;
-        safe_control = true;
 
         u_safe.push_back(0);
         u_safe.push_back(0);
@@ -63,6 +60,7 @@ public:
         prev_vy = 0.0;           // Store previous vy
         new_vx = 0.0;
         new_vy = 0.0;
+
 
         auto timer_callback = [this]() -> void {
             if (offboard_setpoint_counter_ == 10) {
@@ -173,7 +171,6 @@ private:
     rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;
     rclcpp::Publisher<px4_msgs::msg::VehicleCommand>::SharedPtr vehicle_command_publisher_;
     rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr ekf_subscriber_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr enable_safe_control_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr ssr_start_subscriber_;
     rclcpp::Subscription<px4_msgs::msg::VehicleLocalPosition>::SharedPtr attacked_subscriber;
     rclcpp::Subscription<px4_offboard_control::msg::TimestampedArray>::SharedPtr sensor_matrix_subscriber_;
@@ -183,8 +180,9 @@ private:
 
     uint64_t offboard_setpoint_counter_; //!< counter for the number of setpoints sent
     float vx, vy, vz, sampling_freq, threshold, dvx, dvy, prev_vx, prev_vy, new_vx, new_vy;
+
     int target;
-    bool start_ssr, safe_control;
+    bool start_ssr;
     std::vector<std::vector<float>> coordinates;
     px4_offboard_control::msg::TimestampedArray states;
     std::vector<float> u_safe;
@@ -194,7 +192,6 @@ private:
     void ekf_callback_(px4_msgs::msg::VehicleLocalPosition msg);
     void attacked_callback(px4_msgs::msg::VehicleLocalPosition msg);
     void ssr_start_callback_(std_msgs::msg::Empty msg);
-    void enable_safe_control_callback_(std_msgs::msg::Bool msg);
     void update_safe_control_callback_(px4_offboard_control::msg::TimestampedArray msg);
     void update_sensor_matrix_callback_(px4_offboard_control::msg::TimestampedArray msg);
     void publish_vehicle_command(uint16_t command, float param1 = 0.0, float param2 = 0.0);
@@ -282,16 +279,18 @@ void OffboardControlXvel::ekf_callback_(
  * @brief Obtain and shift the state of state reconstruction event input
  * @param msg Empty trigger
  */
-void OffboardControlXvel::ssr_start_callback_(std_msgs::msg::Empty _) {
+void OffboardControlXvel::ssr_start_callback_(std_msgs::msg::Empty msg) {
     this->start_ssr = !this->start_ssr;
 }
 
-/**
- * @brief Alternate between the safe and nominal control (True at start)
- * @param msg Bool safe control state
- */
-void OffboardControlXvel::enable_safe_control_callback_(std_msgs::msg::Bool msg) {
-    this->safe_control = msg.data;
+int main(int argc, char *argv[]) {
+    std::cout << "Starting offboard control node..." << std::endl;
+    setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<OffboardControlXvel>());
+
+    rclcpp::shutdown();
+    return 0;
 }
 
 /**
