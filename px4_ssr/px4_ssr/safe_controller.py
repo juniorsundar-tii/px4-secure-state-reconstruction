@@ -50,8 +50,8 @@ class SafeController(Node):
         # q = 6*np.ones((2*self.n,1))
         h = np.array([[1, 0, 0, 0],[-1, 0, 0, 0],
                      [0, 0, 1, 0],[0, 0, -1, 0]])
-        q = 6*np.ones((self.n,1))
-        gamma = 1*TS # tuning parameter
+        q = 5*np.ones((self.n,1))
+        gamma = 10*TS # tuning parameter
 
         self.safe_problem = SafeProblem(self.dtsys_a, self.dtsys_b, h, q, gamma)
 
@@ -105,6 +105,9 @@ class SafeController(Node):
         ####### The SSR takes in u_safe not u_nom
         u_safe, lic, flag = self.safe_problem.cal_safe_control(np.array(self.u_vec[-1]), self.x_est.T)
 
+        # use backup control when safe controller is infeasible
+        if flag != 1 and self.x_est.shape[1] == 1:
+            u_safe = - np.clip(self.x_est,-5,5)
         # print("---")
         # print("u_safe: ", u_safe)
         # print("u_nom: ", self.u_vec[-1])

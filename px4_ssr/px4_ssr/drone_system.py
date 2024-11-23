@@ -675,8 +675,6 @@ class SafeProblem:
             flag = -1
             u = u_nom.flatten()
 
-            # TODO: use a stabilizing controller u_backup instead of u_nom
-
         return u, flag
 
     def cal_safe_control(self, u_nom, possible_states):
