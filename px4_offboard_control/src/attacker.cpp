@@ -55,7 +55,8 @@ void Attacker::attack(VehicleLocalPosition &copy) {
     if (attack_flag) {
         copy.x *= 1;
         copy.vx *= 1;
-        copy.y *= (1 + dist(generator));
+        copy.y *= (1 + 0.4);
+        copy.y *= 1;
         copy.vy *= 1;
     } else {
         copy.x *= 1;
