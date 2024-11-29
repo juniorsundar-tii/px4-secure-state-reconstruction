@@ -6,7 +6,9 @@
 #include <px4_msgs/msg/vehicle_control_mode.hpp>
 #include <px4_msgs/msg/vehicle_local_position.hpp>
 #include <px4_offboard_control/msg/timestamped_array.hpp>
+#include <rclcpp/logging.hpp>
 #include <rclcpp/parameter.hpp>
+#include <rclcpp/parameter_value.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/empty.hpp>
@@ -39,6 +41,22 @@ public:
         ssr_start_subscriber_ = this->create_subscription<std_msgs::msg::Empty>("/start_ssr", qos, std::bind(&OffboardControlXvel::ssr_start_callback_, this, std::placeholders::_1));
         enable_safe_control_subscriber_ = this->create_subscription<std_msgs::msg::Bool>("/safe_control", qos, std::bind(&OffboardControlXvel::enable_safe_control_callback_, this, std::placeholders::_1));
         safe_input_subscriber = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/u_safe", qos, std::bind(&OffboardControlXvel::update_safe_control_callback_, this, std::placeholders::_1));
+        parameters_client_ = std::make_shared<rclcpp::SyncParametersClient>(this, "state_estimator");
+        while (!parameters_client_->wait_for_service(std::chrono::seconds(1))) {
+            if (!rclcpp::ok()) {
+                RCLCPP_ERROR(this->get_logger(), "Interrupted while waiting for the service. Exiting.");
+                return; 
+            }
+            RCLCPP_INFO(this->get_logger(),  
+                        "service not available, waiting again...");  
+        }
+        // 4. Get the parameter value
+        std::vector<rclcpp::Parameter> parameters = parameters_client_->get_parameters({"system_model/A/dim/row",
+                                                                                        "system_model/B/dim/column",
+                                                                                        "system_model/C/dim/row"});
+        this->n = parameters[0].get_value<int>();
+        this->m = parameters[1].get_value<int>();
+        this->p = parameters[2].get_value<int>();
 
         sampling_freq = 20; // in Hertz
         offboard_setpoint_counter_ = 0;
@@ -170,6 +188,7 @@ public:
 private:
     rclcpp::TimerBase::SharedPtr timer_;
 
+    rclcpp::SyncParametersClient::SharedPtr parameters_client_;
     rclcpp::Publisher<px4_offboard_control::msg::TimestampedArray>::SharedPtr input_matrix_publisher_;
     rclcpp::Publisher<px4_msgs::msg::OffboardControlMode>::SharedPtr offboard_control_mode_publisher_;
     rclcpp::Publisher<px4_msgs::msg::TrajectorySetpoint>::SharedPtr trajectory_setpoint_publisher_;

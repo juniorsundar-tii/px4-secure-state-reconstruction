@@ -34,6 +34,20 @@ class StateEstimator(Node):
                 system_model.Ac, system_model.Bc, system_model.Cc, system_model.Dc, TS
             )
         )
+        self.declare_parameter("system_model/A/dim/row", np.size(self.dtsys_a, 0))
+        self.declare_parameter("system_model/A/dim/column", np.size(self.dtsys_a, 1))
+        self.declare_parameter("system_model/B/dim/row", np.size(self.dtsys_b, 0))
+        self.declare_parameter("system_model/B/dim/column", np.size(self.dtsys_b, 1))
+        self.declare_parameter("system_model/C/dim/row", np.size(self.dtsys_c, 0))
+        self.declare_parameter("system_model/C/dim/column", np.size(self.dtsys_c, 1))
+        self.declare_parameter("system_model/D/dim/row", np.size(self.dtsys_d, 0))
+        self.declare_parameter("system_model/D/dim/column", np.size(self.dtsys_d, 1))
+
+        self.declare_parameter("system_model/A/values", ''.join(str(x) for x in list(np.reshape(np.array(self.dtsys_a), (1, -1))[0])))
+        self.declare_parameter("system_model/B/values", ''.join(str(x) for x in list(np.reshape(np.array(self.dtsys_b), (1, -1))[0])))
+        self.declare_parameter("system_model/C/values", ''.join(str(x) for x in list(np.reshape(np.array(self.dtsys_c), (1, -1))[0])))
+        self.declare_parameter("system_model/D/values", ''.join(str(x) for x in list(np.reshape(np.array(self.dtsys_d), (1, -1))[0])))
+
         self.n: int = self.dtsys_a.shape[0]
 
         self.s = 1
