@@ -19,16 +19,16 @@ public:
         auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5),
                                qos_profile);
         this->attack_flag = false;
-        this->declare_parameter<bool>("attacker_state", this->attack_flag);
+        this->declare_parameter<bool>("AttackerState", this->attack_flag);
 
         attacked_ekf_publisher_ = this->create_publisher<VehicleLocalPosition>(
-            "/fmu/out/vehicle_local_position/attacked", qos);
+            "/fmu/out/VehicleLocalPosition/Attacked", qos);
         raw_vehicle_position_subscriber =
             this->create_subscription<VehicleLocalPosition>(
-                "/fmu/out/vehicle_local_position", qos,
+                "/fmu/out/VehicleLocalPosition", qos,
                 std::bind(&Attacker::position_callback, this, _1));
         attack_trigger_subscriber = this->create_subscription<std_msgs::msg::Bool>(
-            "/attack_trigger", qos, std::bind(&Attacker::attack_trigger, this, _1));
+            "/AttackTrigger", qos, std::bind(&Attacker::attack_trigger, this, _1));
         dist = std::normal_distribution<double>(mean, stddev);
     }
 
@@ -72,7 +72,7 @@ void Attacker::attack(VehicleLocalPosition &copy) {
  */
 void Attacker::attack_trigger(std_msgs::msg::Bool msg) {
     attack_flag = msg.data;
-    this->set_parameter(rclcpp::Parameter("attacker_state", this->attack_flag));
+    this->set_parameter(rclcpp::Parameter("AttackerState", this->attack_flag));
 }
 
 /**

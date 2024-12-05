@@ -1,0 +1,105 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ROS: Launch",
+      "type": "ros",
+      "preLaunchTask": "debug",
+      "request": "launch",
+      "target": "${workspaceFolder}/install/${input:package}/share/${input:package}/launch/${input:launch_file_name}",
+      "attachDebugger": [
+        "${input:program}"
+      ]
+      /*"args": ["argument1:=arg1", "argument2:=arg2"]*/
+    },
+    // Example gdb launch of a ros executable
+    {
+      "name": "(gdb) Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/${input:package}/${input:program}",
+      "args": [],
+      "preLaunchTask": "debug",
+      "stopAtEntry": true,
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    // Example gdb launch of a gtest executable
+    {
+      "name": "(gdb) tests",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/${input:package}/test/${input:test}",
+      "args": [],
+      "preLaunchTask": "debug",
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    // Example gdb launch of a gtest executable
+    {
+      "name": "(gdb) node",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/${input:package}/tests/${input:test}",
+      "args": [],
+      "preLaunchTask": "debug",
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "package",
+      "type": "promptString",
+      "description": "Package name",
+      "default": ""
+    },
+    {
+      "id": "test",
+      "type": "promptString",
+      "description": "test name",
+      "default": ""
+    },
+    {
+      "id": "program",
+      "type": "promptString",
+      "description": "Program name",
+      "default": ""
+    },
+    {
+      "id": "launch_file_name",
+      "type": "promptString",
+      "description": "Program name",
+      "default": ".launch.py"
+    }
+  ]
+}

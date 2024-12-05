@@ -1,0 +1,85 @@
+version: "3.9"
+services:
+  gazebo-server:
+    image: ghcr.io/tiiuae/gz-sim-server:sha-954fefc
+    command: ["world.sdf"]
+    volumes:
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ../gz-models:/data/models
+      - ../gz-worlds/gz-sim:/data/worlds
+    environment:
+      GZ_VERBOSE: 1
+      # Tells the current host what network interface to use to send out messages.
+      # This is required when advertising topics or services.
+      GZ_IP: 192.168.12.55
+      DISPLAY: ${DISPLAY}
+    privileged: true
+    networks:
+      sitl_network:
+        ipv4_address: 192.168.12.55
+    depends_on:
+      - px4-secure-state-reconstruction
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  px4:
+    image: ghcr.io/tiiuae/tii-px4-sitl-gzsim:sha-08bdd05
+    environment:
+      GZ_VERBOSE: 1
+      # Points to the target IP address on the other host (in this case the Gazebo-host). 
+      # This environment variable is necessary to connect the two nodes to each other. 
+      # Note that this connection is bidirectional, so GZ_RELAY only has to be set on one host.
+      GZ_RELAY: 192.168.12.55 #
+      # Tells the current host what network interface to use to send out messages.
+      # This is required when advertising topics or services.
+      GZ_IP: 192.168.12.50
+      DRONE_DEVICE_ID: vehicle0
+      PX4_GZ_MODEL_POSE: 0 5 0.182 0 0 0
+      PX4_VEHICLE_TYPE: mc
+    restart: on-failure
+    networks:
+      sitl_network:
+        ipv4_address: 192.168.12.50
+    depends_on:   
+      - gazebo-server
+
+  microxrce-agent-s01:
+    # Needs to be ran on the same host as the px4 service
+    network_mode: service:px4
+    image: ghcr.io/tiiuae/tii-microxrce-agent:sha-3546f3e
+    environment:
+      SIMULATION: 1
+    volumes:
+      - ./dds_profiles/DEFAULT_FASTRTPS_PROFILES_SITL.xml:/etc/DEFAULT_FASTRTPS_PROFILES.xml
+    depends_on:   
+      - gazebo-server
+
+  px4-secure-state-reconstruction:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    privileged: true
+    cap_add:
+      - SYS_PTRACE
+    # security_opt:
+    #   - seccomp:unconfined
+    #   - apparmor:unconfined
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /tmp/.docker.xauth:/tmp/.docker.xauth
+      - ..:/workspace/px4-secure-state-reconstruction:rw
+    command: ["tail","-f", "/dev/null"]
+    networks:
+      sitl_network:
+        ipv4_address: 192.168.12.60
+
+networks:
+  sitl_network:
+    external: true
+

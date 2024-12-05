@@ -27,18 +27,18 @@ public:
         auto qos = rclcpp::QoS(rclcpp::QoSInitialization(qos_profile.history, 5),
                                qos_profile);
 
-        offboard_control_mode_publisher_ = this->create_publisher<px4_msgs::msg::OffboardControlMode>("/fmu/in/offboard_control_mode", 10);
-        trajectory_setpoint_publisher_ = this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("/fmu/in/trajectory_setpoint", 10);
-        vehicle_command_publisher_ = this->create_publisher<px4_msgs::msg::VehicleCommand>("/fmu/in/vehicle_command", 10);
+        offboard_control_mode_publisher_ = this->create_publisher<px4_msgs::msg::OffboardControlMode>("/fmu/in/OffboardControlMode", 10);
+        trajectory_setpoint_publisher_ = this->create_publisher<px4_msgs::msg::TrajectorySetpoint>("/fmu/in/TrajectorySetpoint", 10);
+        vehicle_command_publisher_ = this->create_publisher<px4_msgs::msg::VehicleCommand>("/fmu/in/VehicleCommand", 10);
 
-        input_matrix_publisher_ = this->create_publisher<px4_offboard_control::msg::TimestampedArray>("/input_matrices", 10);
+        input_matrix_publisher_ = this->create_publisher<px4_offboard_control::msg::TimestampedArray>("/InputMatrices", 10);
 
-        ekf_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/vehicle_local_position", qos, std::bind(&OffboardControlXvel::ekf_callback_, this, std::placeholders::_1));
+        ekf_subscriber_ = this->create_subscription<px4_msgs::msg::VehicleLocalPosition>("/fmu/out/VehicleLocalPosition", qos, std::bind(&OffboardControlXvel::ekf_callback_, this, std::placeholders::_1));
 
-        sensor_matrix_subscriber_ = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/sensor_matrices", qos, std::bind(&OffboardControlXvel::update_sensor_matrix_callback_, this, std::placeholders::_1));
-        ssr_start_subscriber_ = this->create_subscription<std_msgs::msg::Empty>("/start_ssr", qos, std::bind(&OffboardControlXvel::ssr_start_callback_, this, std::placeholders::_1));
-        enable_safe_control_subscriber_ = this->create_subscription<std_msgs::msg::Bool>("/safe_control", qos, std::bind(&OffboardControlXvel::enable_safe_control_callback_, this, std::placeholders::_1));
-        safe_input_subscriber = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/u_safe", qos, std::bind(&OffboardControlXvel::update_safe_control_callback_, this, std::placeholders::_1));
+        sensor_matrix_subscriber_ = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/SensorMatrices", qos, std::bind(&OffboardControlXvel::update_sensor_matrix_callback_, this, std::placeholders::_1));
+        ssr_start_subscriber_ = this->create_subscription<std_msgs::msg::Empty>("/StartSsr", qos, std::bind(&OffboardControlXvel::ssr_start_callback_, this, std::placeholders::_1));
+        enable_safe_control_subscriber_ = this->create_subscription<std_msgs::msg::Bool>("/SafeControl", qos, std::bind(&OffboardControlXvel::enable_safe_control_callback_, this, std::placeholders::_1));
+        safe_input_subscriber = this->create_subscription<px4_offboard_control::msg::TimestampedArray>("/USafe", qos, std::bind(&OffboardControlXvel::update_safe_control_callback_, this, std::placeholders::_1));
 
         sampling_freq = 20; // in Hertz
         offboard_setpoint_counter_ = 0;

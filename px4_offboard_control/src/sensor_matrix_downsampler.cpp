@@ -16,16 +16,16 @@ public:
 
         sensor_matrix_publisher_ =
             this->create_publisher<px4_offboard_control::msg::TimestampedArray>(
-                "/sensor_matrices", 10);
+                "/SensorMatrices", 10);
 
         ekf_subscriber_1_ =
             this->create_subscription<px4_msgs::msg::VehicleLocalPosition>(
-                "/fmu/out/vehicle_local_position", qos,
+                "/fmu/out/VehicleLocalPosition", qos,
                 std::bind(&SensorMatrixDownsampler::ekf_callback_1, this,
                           std::placeholders::_1));
         ekf_subscriber_2_ =
             this->create_subscription<px4_msgs::msg::VehicleLocalPosition>(
-                "/fmu/out/vehicle_local_position/attacked", qos,
+                "/fmu/out/VehicleLocalPosition/Attacked", qos,
                 std::bind(&SensorMatrixDownsampler::ekf_callback_2, this,
                           std::placeholders::_1));
 

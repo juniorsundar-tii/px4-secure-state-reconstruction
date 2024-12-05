@@ -2,3 +2,9 @@
 	path = px4_msgs
 	url = https://github.com/PX4/px4_msgs
     branch = "release/1.14"
+[submodule "gz-models"]
+	path = gz-models
+	url = git@github.com:tiiuae/gz-models.git
+[submodule "gz-worlds"]
+	path = gz-worlds
+	url = git@github.com:tiiuae/gz-worlds.git

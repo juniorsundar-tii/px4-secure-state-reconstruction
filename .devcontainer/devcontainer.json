@@ -1,0 +1,62 @@
+{
+  "name": "ROS 2 Humble Dev Container",
+  "dockerComposeFile": [
+    "sitl-fc-only-compose.yaml"
+  ],
+  "service": "px4-secure-state-reconstruction",
+  "postStartCommand": ". /opt/ros/humble/setup.sh && cd gz-models &&ros2 launch /workspace/px4-secure-state-reconstruction/gz-models/model.launch.py vehicle_model:=holybro_x500",
+  // "build": {
+  //   "dockerfile": "Dockerfile"
+  // },
+  // "image": "ros:humble",
+  // "features": {
+  //   "ghcr.io/devcontainers/features/docker-in-docker:2": {
+  //     "version": "latest"
+  //   }
+  // },
+  // "mounts": [
+  //   "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  // ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-azuretools.vscode-docker",
+        "ms-iot.vscode-ros",
+        "eamodio.gitlens",
+        "ms-python.vscode-pylance",
+        "bierner.markdown-mermaid",
+        "qiu.graphviz-language-support-and-preivew"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        //   "files.exclude": {
+        //     "**/.colcon": true
+        //   },
+        //   "ros.distro": "humble"
+      }
+    }
+  },
+  "containerEnv": {
+    //   "COLCON_HOME": "/workspaces/.colcon",
+    "ROS_DOMAIN_ID": "0",
+    //   "GZ_PARTITION":"sim",
+    "DISPLAY": "${DISPLAY}"
+  },
+  // "postCreateCommand": "sudo apt-get update && sudo apt-get install -y python3-colcon-common-extensions",
+  "workspaceFolder": "/workspace/px4-secure-state-reconstruction",
+  // "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/ros2_ws,type=bind",
+  // "runArgs": [
+  //   //   "--net=host",
+  //   "--net=sitl_network",
+  //   "--ip=192.168.12.60",
+  //   "--privileged=true",
+  //   "--cap-add=SYS_PTRACE",
+  //   "--security-opt=seccomp:unconfined",
+  //   "--security-opt=apparmor:unconfined",
+  //   "--volume=/tmp/.X11-unix:/tmp/.X11-unix",
+  //   "--volume=/tmp/.docker.xauth:/tmp/.docker.xauth",
+  //   "--seccomp=unconfined"
+  // ],
+  // "remoteUser": "root"
+}

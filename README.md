@@ -27,33 +27,18 @@
 
 ## Pre-requisites
 
-- ROS 2 Humble Hawksbill
-- PX4-Autopilot (and dependencies)
-
-*OR* Just Docker
+- Docker
 
 ## Containerised Deployement
 
-For this, we will be defining a few aliases. So do not forget to clean your
-`.bashrc` file later on if you want to clean your aliases.
+```bash
+# First clone the repository
+git clone --recursive https://github.com/juniorsundar-tii/px4-secure-state-reconstruction.git
+```
 
 ### Simulation Environment
 
-First we need to install the autopilot firmware at the correct version.
-
-```bash
-# Clone the PX4-Autopilot Firmware
-git clone --recursive -b release/1.14 https://www.github.com/PX4/PX4-Autopilot.git
-cd PX4-Autopilot
-
-# Add this directory for use later
-echo "export FIRMWARE_DIR=$(pwd)" >> ~/.bashrc
-source ~/.bashrc
-# Confirm that the variable is stored by running
-# echo $FIRMWARE_DIR
-```
-
-To launch the simulation environment. First run:
+To launch the simulation environment. First run on your host terminal:
 
 ```bash
 # Run once to ensure that any remote client (like the container)
@@ -65,154 +50,43 @@ xhost +
 Next, we can enter the simulation docker environment:
 
 ```bash
-# To launch a SITL with Gazebo-Garden GUI run this first ONCE:
-docker run -it --privileged --rm \
-    -v ${FIRMWARE_DIR}:/Firmware:rw \
-    -v /tmp/.X11-unix:/tmp/.X11-unix:ro \
-    -e DISPLAY=${DISPLAY} \
-    -e LOCAL_USER_ID="$(id -u)" \
-    -w /Firmware \
-    --network=host  \
-    --name=px4_sim px4io/px4-dev-simulation-jammy \
-    /bin/bash
+# To launch a SITL with Gazebo-Harmonic GUI open the cloned repo in vscode. 
+# Select the open from container option.
+# Make sure you have the vscode devcontainers installed.
 ```
 
-Once we enter the simulation environment, launch the simulation by running:
-
-```bash
-# Run this once you are inside the Docker container
-make px4_sitl gz_x500
-```
-
-To make our life easier, we can make the `docker run` command into an alias:
-
-```bash
-echo 'alias px4_sim="docker run -it --privileged --rm -v ${FIRMWARE_DIR}:/Firmware:rw -v /tmp/.X11-unix:/tmp/.X11-unix:ro -e DISPLAY=${DISPLAY} -e LOCAL_USER_ID='$(id -u)' -w /Firmware --network=host --name=px4_sim px4io/px4-dev-simulation-jammy /bin/bash"' >> ~/.bashrc
-```
-
-Now, you can directly enter the simulation container environment by running
-`px4_sim`.
 
 ### MicroXRCE-DDS Agent
 
 The DDS agent is necessary to transfer the uORB topics from within the
 autopilot into ROS 2 topics. This can also be deployed in container
-environment:
+environment. The docker compose associated with the current development container spawns MicroXRCE-DDS.
 
-```bash
-git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
-cd Micro-XRCE-DDS-Agent
-docker build -t=microxrce_agent .
-```
-
-The build should take some time, but once it is done, we will have the agent
-container available. To launch this:
-
-```bash
-docker run -it --rm --network=host microxrce_agent udp4 --port 8888
-```
 
 ### ROS 2 Development Environment
 
-For ease of use, just copy paste the following bash command as is. There aren't
-any superuser commands so your system should be safe.
+For ease of use, the devepment container will have all the cloned repo mounted with read write permissions.
 
-```bash
-# First clone the repository
-mkdir ~/ros_workspace && cd ~/ros_workspace
-git clone --recursive https://github.com/juniorsundar-tii/px4-secure-state-reconstruction.git src
-
-# Build the Docker image
-cd src
-docker build -t=ssr_ros_ws .
-
-# Run the temp_container instance to copy out the build and install files
-# This needs to be done ONCE
-docker run -it --name=temp_container ssr_ros_ws /bin/bash &
-cd ~/ros_workspace
-rm -rf install build log
-docker cp temp_container:/ros_workspace/install install
-docker cp temp_container:/ros_workspace/log log
-docker cp temp_container:/ros_workspace/build build
-docker stop temp_container
-```
-
-To make it easier for us to develop the solution while testing it, we will
-mount the ROS 2 workspace as a volume into the container. This way, you can
-develop locally, but build, deploy and test into the container environment
-where your ROS packages are available.
-
-Since we will be using the container environment regularly, it is HIGHLY
-RECOMMENDED to write this alias:
-
-```bash
-# Copy paste as it is
-echo "alias ssr_ros_ws='docker run -it --network=host --ipc=host --pid=host --env UID=\$(id -u) --env GID=\$(id -g) -v /tmp/.X11-unix:/tmp/.X11-unix:ro -e DISPLAY=\${DISPLAY} -v ~/ros_workspace:/ros_workspace:rw -w /ros_workspace ssr_ros_ws'" >> ~/.bashrc
-
-source ~/.bashrc
-
-# Note that if you are planning to run GUI packages, preface any command in a terminal with
-xhost +
-```
+Your environment will be contrained within the development container so your host will only see the changes in the files you make.
 
 We need to first build the workspace:
 
 ```bash
-# You can now run all ROS 2 commands as long as you prefix it with our docker alias
-ssr_ros_ws colcon build
+CTRL + B
+source install/setup.bash
 ```
-
-## Native Deployment (WIP | SKIP FOR NOW)
-
-Create a ROS 2 Workspace
-
-```bash
-mkdir ros2_ws && cd ros2_ws
-```
-
-Clone and build the workspace
-
-```bash
-git clone --recursive https://github.com/juniorsundar-tii/px4-secure-state-reconstruction.git src
-rosdep install --from-paths src --ignore-src -r -y
-colcon build
-source install/local_setup.bash
-```
-
-# Running (in Containers)
-
-To run everything we need commands in five (5) terminals:
-
-1. Running the simulation environment
-2. Running the MicroXRCEAgent *(Run once and forget)*
-3. Running the offboard control modules
-4. Run the secure state reconstruction node
-5. Trigger the secure state reconstruction
-
-This will be streamlined later on, but for now please bear with it.
 
 ## Launch Simulation
-
-```bash
-# in Terminal 1
-px4_sim
-# Once you enter the container
-make px4_sitl gz_x500
-```
+The simulation launches automatically when spawning the dev container.
 
 ## Launch DDS Agent
+The DDS Agent launches automatically when spawning the dev container.
 
-```bash
-# in Terminal 2
-docker run -it --rm --network=host microxrce_agent udp4 --port 8888
-# Can run this and forget it
-```
 
 ## Launch Offboard Control Modules
 
 ```bash
-# in Terminal 3
-ssr_ros_ws ros2 launch px4_offboard_control module_launch.py
+ros2 launch px4_offboard_control module_launch.py
 ```
 
 If successful, then the drone should be hovering in the Gazebo simulation
@@ -221,52 +95,24 @@ environment.
 ## Launch Secure State Reconstruction Nodes
 
 ```bash
-# in Terminal 4
 ssr_ros_ws ros2 launch px4_ssr ssr_launch.py # This will launch the estimator and filter
 ```
 
 ## Initiate the Regular Controller
 
 ```bash
-# in Terminal 5
 ssr_ros_ws ros2 topic pub -1 /start_ssr std_msgs/msg/Empty "{}"
 ```
 
-# Updating (in Containers)
+# Updating
 
-As long as the `build`, `install` and `log` directories haven't been
-tampered with, you can simply `git pull` or `git push` normally.
-
-> [!warning]
-> If something breaks and you are getting irreparable errors, then make sure
-> to `commit` and `push` your changes to the repository. Delete the entire
-> `~/ros_workspace` and re-run:
->
-> ```bash
-> # First clone the repository
-> mkdir ~/ros_workspace && cd ~/ros_workspace
-> git clone --recursive https://github.com/juniorsundar-tii/px4-secure-state-reconstruction.git src
-> 
-> # Build the Docker image
-> cd src
-> docker build -t=ssr_ros_ws .
-> 
-> # Run the temp_container instance to copy out the build and install files
-> # This needs to be done ONCE
-> docker rm temp_container
-> docker run -it --name=temp_container ssr_ros_ws /bin/bash &
-> cd ~/ros_workspace
-> rm -rf install build log
-> docker cp temp_container:/ros_workspace/install install
-> docker cp temp_container:/ros_workspace/log log
-> docker cp temp_container:/ros_workspace/build build
-> docker stop temp_container
-> ```
+Write new code and build it with in the devcontainer.
 
 # Plan for Implementation
 
-## Simulation
 
+
+## Simulation
 
 ```mermaid
 graph TB
@@ -326,8 +172,7 @@ end
 The drone will only hover until a toggle is provided:
 
 ```bash
-# in Terminal 5
-ssr_ros_ws ros2 topic pub -1 /start_ssr std_msgs/msg/Empty "{}"
+ros2 topic pub -1 /start_ssr std_msgs/msg/Empty "{}"
 ```
 
 ## Start Attacker
@@ -335,7 +180,7 @@ ssr_ros_ws ros2 topic pub -1 /start_ssr std_msgs/msg/Empty "{}"
 Attacker can be toggled with this:
 
 ```bash
-ssr_ros_ws ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "data: false"
+ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "data: false"
 ```
 
 ## Start Safe Controller
@@ -343,7 +188,7 @@ ssr_ros_ws ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "
 The standard controller will be used until this is initialised:
 
 ```bash
-ssr_ros_ws ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "data: false"
+ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "data: false"
 ```
 
 ## Start State Reconstruction
@@ -351,7 +196,7 @@ ssr_ros_ws ros2 topic pub -1 /safe_control std_msgs/msg/Bool "data: true" # or "
 State reconstruction can be initialised with this:
 
 ```bash
-ssr_ros_ws ros2 topic pub -1 /state_reconstruction std_msgs/msg/Bool "data: true" # or "data: false"
+ros2 topic pub -1 /state_reconstruction std_msgs/msg/Bool "data: true" # or "data: false"
 ```
 
 ## Querying States
@@ -369,3 +214,19 @@ ros2 param get /attacker attacker_state
 # Get state of state reconstructor (boolean)
 ros2 param get /safe_controller state_reconstruction_state
 ```
+
+
+### SITL Model SDF file generation
+For instance, with _holybro_x500_ as model:
+- [One time only] generate `model.sdf` in `gz-models/holybro_x500`
+  ```
+  cd gz-models
+  ros2 launch model.launch.py vehicle_model:=holybro_x500
+  ```
+
+### Update plugins
+- Optionally, the plugins can be updated via
+  ```
+  # for instance: libmavlink_hitl_gazebosim.so
+  cd gz-plugins
+  docker run --rm -itd --name extractor --entrypoint /bin/sh ghcr.io/tiiuae/px4-gzsim-plugins:latest && docker cp extractor:/artifacts/libmavlink_hitl_gazebosim.so . && docker kill extractor
