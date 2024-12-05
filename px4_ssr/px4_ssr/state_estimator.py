@@ -171,8 +171,8 @@ class StateEstimator(Node):
                 average_res = self.residual_aggregation[sensors_key]['average']
                 count_res =  self.residual_aggregation[sensors_key]['count']
                 print(f'sensor_comb:{sensors_key}, count_res:{count_res},average_res:{average_res}')
-                # a valid sensor combination should be consistent and the corresp. residual ratio should be close to 1
-                if (count_res > 100 and count_res < 0.9*min_count) or average_res > 1.2*min_average:
+                # a valid sensor combination should be consistent (count and the average)
+                if (count_res > 5/TS and count_res < 0.9*min_count) or average_res > 1.2*min_average:
                     sensors_to_remove.append(sensor_ind)
                     print('found a sensor combination to remove')
 
@@ -185,6 +185,14 @@ class StateEstimator(Node):
 
             set_exclusion = set1 - to_remove_set
             self.possible_sensor_comb = [item for item in set_exclusion]
+
+        # if there is no sensor combination that gives an error smaller than the threshold,
+        # reset the residual aggregation and possible sensor combinations
+        if not any(res < self.residual_bound for res in residuals_list):
+            self.residual_aggregation = {}
+            self.possible_sensor_comb = nchoosek(
+                [i for i in range(self.dtsys_c.shape[0])], self.dtsys_c.shape[0] - self.s
+            )
 
         # remove duplicat states
         possible_states = possible_states.transpose()
